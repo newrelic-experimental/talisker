@@ -1,0 +1,15 @@
+{
+  "name": "talisker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "request": "2.88.2",
+    "lodash": "4.17.11"
+  },
+  "description": ""
+}

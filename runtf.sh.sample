@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# A helper to run terraform supplying secrets as vars
+#
+# Call like: `./runtf.sh plan`
+#        or: `./runtf.sh apply`
+#        etc
+#
+
+
+terraformNRAccountId="123456"
+terraformAPIKey="NRAK-xxx"
+
+userAPIKey="NRAK-yyy"
+insertAPIKey="NRII-yyy"
+
+slackChannelURL="https://hooks.slack.com/services/xxx"
+
+bash -c "terraform $1 -var terraformAPIKey=\"${terraformAPIKey}\" -var terraformNRAccountId=\"${terraformNRAccountId}\" -var userAPIKey=\"${userAPIKey}\" -var insertAPIKey=\"${insertAPIKey}\""
