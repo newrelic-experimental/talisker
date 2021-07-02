@@ -16,4 +16,4 @@ insertAPIKey="NRII-yyy"
 
 slackChannelURL="https://hooks.slack.com/services/xxx"
 
-bash -c "terraform $1 -var terraformAPIKey=\"${terraformAPIKey}\" -var terraformNRAccountId=\"${terraformNRAccountId}\" -var userAPIKey=\"${userAPIKey}\" -var insertAPIKey=\"${insertAPIKey}\""
+bash -c "terraform $1 -var terraformAPIKey=\"${terraformAPIKey}\" -var terraformNRAccountId=\"${terraformNRAccountId}\" -var userAPIKey=\"${userAPIKey}\" -var insertAPIKey=\"${insertAPIKey}\" -var slackChannelURL=\"${slackChannelURL}\""
