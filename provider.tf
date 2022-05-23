@@ -1,11 +1,11 @@
 # Configure the terraform and New Relic provider versions
 # More details: https://www.terraform.io/docs/configuration/provider-requirements.html
 terraform {
-  required_version = "~> 0.14.8"
+  required_version = "~> 1.2.0"
   required_providers {
     newrelic = {
       source  = "newrelic/newrelic"
-      version = "~> 2.21.0"
+      version = "~> 2.45.1"
     }
   }
 }

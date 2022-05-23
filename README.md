@@ -3,19 +3,22 @@
 # Talisker - NRDB NRQL Alerting Engine
 The Talisker engine allows you to alert on NRQL queries longer than the 2 hour streaming alerts limit. The engine runs within the New Relic Synthetic Monitor container and can be confifured with a simple JSON configuration.
 
-At its simplest you can simply add the script to your synthetic monitor, but this project includes a full terraform module that builds not only the monitor but a dashboard and default alerts too. You might not want all of that cruft, simply remove what you dont need.
+At its simplest you can just add the [script](./modules/Talisker/src/base_script.js) to your synthetic monitor, but this project includes a full terraform module that builds not only the monitor but a dashboard and default alerts too. You might not want all of that cruft, simply remove what you dont need.
 
+## Installation and setup
+You can run the script stand alone in a synthetic, locally on your machine or setup a more comprehensive monitored application:
 
-## Stand alone mode
-For stand alone simply copy the content of (base_script.js)[./modules/Talisker/src/base_script.js] into a New Relic API monitor. Un comment the top block and set the values as required. Details on task settings can be found below.
+### Stand alone mode 
+For stand mode, alone copy the content of [base_script.js](./modules/Talisker/src/base_script.js) into a New Relic API monitor. Un-comment the top block and set the values as required. Details on task settings can be found below.
 
-Set the monitor name and ID as approriate for the monitor you have set the script up in. You could use any ID and name you like too.
+Set the monitor name and ID as approriate for the monitor you have set the script up in. You could use any ID and name you like too, this only really matters if you;re running more than one instance in an account.
 
 You will need to specify two API keys, one a user key api and one ingest insert key. These are to query and inject the data respectively. We recommend that you store these in the secure credential store.
 
 
-## Terraform application mode
-This project includes a terraform module that makes it easy to setup both the script and also some monitoring of the script. It creates a dashboard, the secure credentials, some alerts (one for the engine, one for all the tasks) and as an example a slack notification channel.
+### Terraform application mode
+This project includes a terraform module that makes it easy to setup both the script and also some monitoring of the script. It creates a dashboard, the secure credentials, some alerts (one for the engine, one for all the tasks) and as an example a slack notification channel. You can ammend as you see fit. The venefit of this approach is that it builds some alerts and dashbaords that monitor the Talisker engine itself.
+
 ![Summary](talisker-summary.png)
 
 To use the terraform version you need to supply the various API keys and data. Copy the `[runtf.sh.sample](runtf.sh.sample)` to `run.tf` and add the values as follows:
@@ -25,8 +28,12 @@ To use the terraform version you need to supply the various API keys and data. C
 - **userAPIKey**: Another user API key that has query rights (NRAK-...)
 - **insertAPIKey**: An ingest insert key (NRII-...)
 - **slackChannelURL**: A slack webhook url
+- **dataCenter**: New Relic data center that your accont resides in, US or EU
 
 In the main.tf setup the tasks as described below.
+
+### Running locally mode
+You can run and test on your local machine. With nodejs installed run `npm install` in the `modules/Talisker/src` fodler to install dependencies. Then edit the file accordingly (adding your own API keys where approriate in the local config section and setting up your tasks manually). Run the sript with `node base_script.js` 
 
 ## Task configuration
 In stand alone mode you configure tasks through the TASKS json object. For terraform you configure the tasks in the main.tf. The terraform version allows you to specify alert criteria for the data too but for the stand alone mode you'll need to setup your own alerts.
@@ -44,6 +51,7 @@ Each task you can specify:
   - `PERC_DIFF`: Return the difference from the value from this query to the previous task as a percentage
 - **fillNullValue**: The value to use for null results, usually zero.
 - **invertResult**: Should the result be inverted? true|false (Alerts can only be set on positive values so this allows you to invert the result and alert upon it.)
+- **ingestType**: Type of ingest storage for this task. Metric is default and preferred but storing as events can be usefule. Possible values:  "metric" or "event"
 
 Additionally these settings should be set in terraform to control the alert conditions: (each task becomes a single condition in an single alert policy)
 
@@ -66,6 +74,7 @@ const TASKS = [{
     "chaining":"NONE",
     "fillNullValue": 0,
     "invertResult": false,
+    "ingestType": "metric",
     "query":"FROM Public_APICall select uniqueCount(api) as value since 1 day ago"
 }]
 ```
@@ -82,6 +91,8 @@ The script will process each task in the TASKS array and drop a metric into New 
 You could for example target the output of a task with the following NRQL: 
 `from Metric select latest(talisker.value) where talisker.monitorId='your-monitor-id' and talisker.id='your-task-id`
 
+### Event Support
+Talisker also supports storing the output results as events rather than metrics. This can be chosen on a task level by setting `ingestType` to `event`. Events will appear in the event type `taliskerSample`. e.g.: `select latest(value) from taliskerSample facet talisker.name`
 
 ## Support
 

@@ -6,22 +6,27 @@
 */
 
 // const TASKS = [{
-//     "id":"example",
-//     "name":"Example",
+//     "id":"exampleMetric",
+//     "name":"Example Metric",
 //     "accountId":"123456",
 //     "selector":"value",
 //     "chaining":"NONE",
 //     "fillNullValue": 0,
 //     "invertResult": false,
+//     "ingestType": "metric",
 //     "query":"FROM Public_APICall select uniqueCount(api) as value since 1 day ago"
-// },
+// }
 // ]
 
-// const MONITOR_NAME="Monitor Name"
-// const MONITOR_ID="this-monitors-id" //the monitor id
-// const NAMESPACE ="talisker"     // metric details are prefixed with this, best to leave as is
-// let INSERT_KEY=$secure.YOUR_SECURE_CRED_CONTAINING_INSERT_KEY
-// let QUERY_KEY=$secure.YOUR_SECURE_CRED_CONTAINING_QUERY_KEY
+// const MONITOR_NAME="Monitor Name"   //the monitor name, only relevant if deploying more than once
+// const MONITOR_ID="this-monitors-id" //the monitor id, only relevant if deploying more than once
+// const NAMESPACE ="talisker"         // metric details are prefixed with this, best to leave as is
+// const NEWRELIC_DC = "US"            // datacenter for account - US or EU
+// const ACCOUNT_ID = "12345"         // Account ID (required if ingesting events)
+// let INSERT_KEY="",QUERY_KEY=""
+// INSERT_KEY=$secure.YOUR_SECURE_CRED_CONTAINING_INSERT_KEY
+// QUERY_KEY=$secure.YOUR_SECURE_CRED_CONTAINING_QUERY_KEY
+
 
 /*
 * End of example-------------
@@ -33,6 +38,10 @@ const TALISKER_VERSION="1"
 const VERBOSE_LOG=true          // Control how much logging there is
 const DEFAULT_TIMEOUT = 5000    // You can specify a timeout for each task
 
+const INGEST_EVENT_ENDPOINT = NEWRELIC_DC === "EU" ? "insights-collector.eu01.nr-data.net" : "insights-collector.newrelic.com" 
+const INGEST_METRIC_ENDPOINT = NEWRELIC_DC === "EU" ? "metric-api.eu.newrelic.com" : "metric-api.newrelic.com" 
+const GRAPHQL_ENDPOINT = NEWRELIC_DC === "EU" ? "api.eu.newrelic.com" : "api.newrelic.com" 
+const INGEST_EVENT_TYPE=`${NAMESPACE}Sample` //events are stored in the eventtype
 
 let assert = require('assert');
 let _ = require("lodash");
@@ -51,8 +60,8 @@ if (IS_LOCAL_ENV) {
   RUNNING_LOCALLY=true
   var $http = require("request");       //only for local development testing
   var $secure = {}                      //only for local development testing
-  QUERY_KEY="NRAK-xxx"  //NRAK...
-  INSERT_KEY="NRII-xxx"  //NRII...
+  QUERY_KEY="NRAK..."  //NRAK...
+  INSERT_KEY="...NRAL"  //...NRAL
 
   console.log("Running in local mode",true)
 } 
@@ -83,9 +92,9 @@ const log = function(data, verbose) {
 */
 async function asyncForEach(array, callback) {
     for (let index = 0; index < array.length; index++) {
-      await callback(array[index], index, array);
+        await callback(array[index], index, array);
     }
-  }
+}
   
 
 /*
@@ -105,6 +114,9 @@ const  genericServiceCall = function(responseCodes,options,success) {
     return new Promise((resolve, reject) => {
         $http(options, function callback(error, response, body) {
         if(error) {
+            console.log("Request error:",error)
+            console.log("Response:",response)
+            console.log("Body:",body)
             reject(`Connection error on url '${options.url}'`)
         } else {
             if(!possibleResponseCodes.includes(response.statusCode)) {
@@ -142,7 +154,7 @@ const setAttribute = function(key,value) {
 */
 const sendDataToNewRelic = async (data) =>  {
     let request = {
-        url: "https://metric-api.newrelic.com/metric/v1",
+        url: `https://${INGEST_METRIC_ENDPOINT}/metric/v1`,
         method: 'POST',
         json: true,
         headers :{
@@ -150,7 +162,7 @@ const sendDataToNewRelic = async (data) =>  {
         },
         body: data
     }
-    log("\nSending data to NR metrics API...")
+    log(`\nSending ${data[0].metrics.length} records to NR metrics API...`)
     return genericServiceCall([200,202],request,(body,response,error)=>{
         if(error) {
             log(`NR Post failed : ${error} `,true)
@@ -158,10 +170,35 @@ const sendDataToNewRelic = async (data) =>  {
         } else {
             return true
         }
-        })
+    })
 }
 
-
+/*
+* sendEventDataToNewRelic()
+* Sends a event payload to New Relic
+*
+* @param {object} data               - the payload to send
+*/
+const sendEventDataToNewRelic = async (data) =>  {
+    let request = {
+        url: `https://${INGEST_EVENT_ENDPOINT}/v1/accounts/${ACCOUNT_ID}/events`,
+        method: 'POST',
+        json: true,
+        headers :{
+            "Api-Key": INSERT_KEY
+        },
+        body: data
+    }
+    log(`\nSending ${data.length} records to NR events API...`)
+    return genericServiceCall([200,202],request,(body,response,error)=>{
+        if(error) {
+            log(`NR Post failed : ${error} `,true)
+            return false
+        } else {
+            return true
+        }
+    })
+}
 
 
 
@@ -169,6 +206,7 @@ async function runtasks(tasks) {
     let TOTALREQUESTS=0,SUCCESSFUL_REQUESTS=0,FAILED_REQUESTS=0
     let FAILURE_DETAIL = []
     let metricsInnerPayload=[]
+    let eventsInnerPayload=[]
     let previousTaskResult=0
     await asyncForEach(tasks, async (task) => {
 
@@ -187,7 +225,7 @@ async function runtasks(tasks) {
           }
           `
         const options =  {
-                url: `https://api.newrelic.com/graphql`,
+                url: `https://${GRAPHQL_ENDPOINT}/graphql`,
                 method: 'POST',
                 headers :{
                   "Content-Type": "application/json",
@@ -293,34 +331,53 @@ async function runtasks(tasks) {
                     log(`Task succeeded with result: ${Array.isArray(result) ? `(faceted results: ${result.length})`: result}`)
                     previousTaskResult = result //support for chaining
 
-                    const constructMetricPayload = (value,facets) =>{
-                        let metricPayload={
-                            name: `${NAMESPACE}.value`,
-                            type: "gauge",
-                            value: value,
-                            timestamp: Math.round(Date.now()/1000),
-                            attributes: {}
-                        }
-                        metricPayload.attributes[`${NAMESPACE}.id`]=task.id
-                        metricPayload.attributes[`${NAMESPACE}.name`]=task.name
-                        metricPayload.attributes[`${NAMESPACE}.inverted`]=(task.invertResult===true)? true : false
+                    const constructPayload = (value,facets) =>{
+
+                        let attributes={}
+                        attributes[`${NAMESPACE}.id`]=task.id
+                        attributes[`${NAMESPACE}.name`]=task.name
+                        attributes[`${NAMESPACE}.inverted`]=(task.invertResult===true)? true : false
 
                         if(facets) {
-                            metricPayload.attributes[`${NAMESPACE}.faceted`] = true
-                            metricPayload.attributes=Object.assign(metricPayload.attributes, facets)
+                            attributes[`${NAMESPACE}.faceted`] = true
+                            attributes=Object.assign(attributes, facets)
                         }                        
-                        metricsInnerPayload.push(metricPayload) 
+
+
+                        if(task.ingestType && task.ingestType === "event") {
+                            //Event payload
+                            let eventPayload = {
+                                eventType: INGEST_EVENT_TYPE,
+                                name: `${NAMESPACE}.value`,
+                                value: value,
+                                timestamp: Math.round(Date.now()/1000)
+                            }
+                            eventPayload=Object.assign(eventPayload, attributes)
+                            eventsInnerPayload.push(eventPayload)
+                        } else 
+                        {
+                            //Metric payload
+                            let metricPayload={
+                                name: `${NAMESPACE}.value`,
+                                type: "gauge",
+                                value: value,
+                                timestamp: Math.round(Date.now()/1000),
+                                attributes: attributes
+                            }
+                            
+                            metricsInnerPayload.push(metricPayload) 
+                        }
                     }
 
                     if(Array.isArray(result)){
                         result.forEach((res)=>{
                             if(res.value!==undefined) {
-                                constructMetricPayload(res.value,res.facets)
+                                constructPayload(res.value,res.facets)
                             } 
                         })
                     }
                     else {
-                        constructMetricPayload(result)
+                        constructPayload(result)
                     }
 
                      
@@ -344,28 +401,50 @@ async function runtasks(tasks) {
     })
 
 
-    //Prepare metric payloads for New Relic ingest
+    //Prepare metric/event payloads for New Relic ingest
 
-    let commonMetricBlock={"attributes": {}}
-    commonMetricBlock.attributes[`${NAMESPACE}.monitorName`]=MONITOR_NAME
-    commonMetricBlock.attributes[`${NAMESPACE}.monitorId`]=MONITOR_ID
-    commonMetricBlock.attributes[`talisker.version`]=TALISKER_VERSION
+    //metrics
+    if(metricsInnerPayload && metricsInnerPayload.length > 0) {
+        let commonMetricBlock={"attributes": {}}
+        commonMetricBlock.attributes[`${NAMESPACE}.monitorName`]=MONITOR_NAME
+        commonMetricBlock.attributes[`${NAMESPACE}.monitorId`]=MONITOR_ID
+        commonMetricBlock.attributes[`talisker.version`]=TALISKER_VERSION
+    
+        let metricsPayLoad=[{ 
+            "common" : commonMetricBlock,
+            "metrics": metricsInnerPayload
+        }]
+    
+        let NRPostStatus = await sendDataToNewRelic(metricsPayLoad)
+        if( NRPostStatus === true ){
+            setAttribute("nrPostStatus","success")
+            log("NR Metrics Post successful")   
+        } else {
+            setAttribute("nrPostStatus","failed")
+            log("NR Metrics Post failed")   
+        }
+    }
+    //events
+    if(eventsInnerPayload && eventsInnerPayload.length > 0) {
 
-    let metricsPayLoad=[{ 
-        "common" : commonMetricBlock,
-        "metrics": metricsInnerPayload
-    }]
-
-    let NRPostStatus = await sendDataToNewRelic(metricsPayLoad)
-    if( NRPostStatus === true ){
-        setAttribute("nrPostStatus","success")
-        log("NR Post successful")   
-    } else {
-        FAILED_REQUESTS++
-        setAttribute("nrPostStatus","failed")
-        log("NR Post failed")   
+        //add talisker runtime meta data
+        eventsInnerPayload.forEach((event)=>{
+            event[`${NAMESPACE}.monitorName`]=MONITOR_NAME
+            event[`${NAMESPACE}.monitorId`]=MONITOR_ID
+            event[`talisker.version`]=TALISKER_VERSION
+        })
+    
+        let NRPostStatus = await sendEventDataToNewRelic(eventsInnerPayload)
+        if( NRPostStatus === true ){
+            setAttribute("nrPostEventStatus","success")
+            log("NR Events Post successful")   
+        } else {
+            setAttribute("nrPostEventStatus","failed")
+            log("NR Events Post failed")   
+        }
     }
 
+   
 
     log(`\n\n-----\nAttempted: ${TOTALREQUESTS}, Succeded ${SUCCESSFUL_REQUESTS}, Failed: ${FAILED_REQUESTS}`,true)
     

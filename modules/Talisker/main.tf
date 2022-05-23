@@ -3,6 +3,8 @@ variable "nameSpace" { default = "talisker"}
 variable "userAPIKey" {}
 variable "insertAPIKey" {}
 variable "frequency" {}
+variable "dataCenter" { default = "US" }
+variable "accountId" {}
 variable "tasks" {
     type = list(object({
         id = string
@@ -13,6 +15,7 @@ variable "tasks" {
         chaining = string
         fillNullValue = number
         invertResult = bool
+        ingestType = string
 
         alert_operator = string
         alert_critical_threshold = number
@@ -25,7 +28,6 @@ variable "tasks" {
 
 
 #For the watcher---
-variable "accountId" {}
 variable "notificationChannelId" {}
 
 
@@ -70,6 +72,7 @@ data "template_file" "header_js" {
     "chaining":${jsonencode(task.chaining)},
     "nullValue":${jsonencode(task.fillNullValue)},
     "invertResult":${jsonencode(task.invertResult)},
+    "ingestType":${jsonencode(task.ingestType)},
     "query":${jsonencode(task.query)}
 },
 %{ endfor ~}]
@@ -80,6 +83,8 @@ TASKBLOCK
                 insertKeyName = "TALISKER_INSERT_KEY_${upper(replace(newrelic_synthetics_monitor.monitor.id,"-","_"))}"
                 queryKeyName = "TALISKER_QUERY_KEY_${upper(replace(newrelic_synthetics_monitor.monitor.id,"-","_"))}"
                 keySuffix = replace(newrelic_synthetics_monitor.monitor.id,"-","_")
+                dataCenter = var.dataCenter
+                accountId = var.accountId
                }
         )
 }

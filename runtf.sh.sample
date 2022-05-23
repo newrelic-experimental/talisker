@@ -12,7 +12,7 @@ terraformNRAccountId="123456"
 terraformAPIKey="NRAK-xxx"
 
 userAPIKey="NRAK-yyy"
-insertAPIKey="NRII-yyy"
+insertAPIKey="yyy-NRAL"
 
 slackChannelURL="https://hooks.slack.com/services/xxx"
 
