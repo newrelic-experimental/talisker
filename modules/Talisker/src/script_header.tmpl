@@ -1,8 +1,10 @@
 const TASKS = ${tasks}
 const MONITOR_NAME="${monitorName}"
 const MONITOR_ID="${monitorId}"
-const NAMESPACE ="${nameSpace}"     // metric details re prefixed with this
-let INSERT_KEY=$secure.${insertKeyName}
-let QUERY_KEY=$secure.${queryKeyName}
+const NAMESPACE ="${nameSpace}"         // metric details re prefixed with this
+const NEWRELIC_DC = "${dataCenter}"     // datacenter for account - US or EU
+const ACCOUNT_ID = "${accountId}"        // Account ID (required if ingesting events)
+let INSERT_KEY="",QUERY_KEY=""
+INSERT_KEY=$secure.${insertKeyName}
+QUERY_KEY=$secure.${queryKeyName}
 // End of terraform
-

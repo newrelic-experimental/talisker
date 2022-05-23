@@ -13,7 +13,6 @@ resource "newrelic_nrql_alert_condition" "condition" {
   name                         = var.tasks[count.index].name
   description                  = "Alert when monitor fails"
   violation_time_limit_seconds = 3600
-  value_function               = "single_value"
 
   fill_option          = "static"
   fill_value           = 0
@@ -23,9 +22,11 @@ resource "newrelic_nrql_alert_condition" "condition" {
   open_violation_on_expiration   = true
   close_violations_on_expiration = true
 
+  aggregation_method = "event_timer"
+  aggregation_timer = 60
+
   nrql {
-    query             = "from Metric select latest(${var.nameSpace}.value) where talisker.monitorId ='${newrelic_synthetics_monitor.monitor.id}' and talisker.id='${var.tasks[count.index].id}'"
-    evaluation_offset = 3
+    query             = var.tasks[count.index].ingestType == "event" ? "from ${var.nameSpace}Sample select latest(value) where talisker.monitorId ='${newrelic_synthetics_monitor.monitor.id}' and talisker.id='${var.tasks[count.index].id}'" : "from Metric select latest(${var.nameSpace}.value) where talisker.monitorId ='${newrelic_synthetics_monitor.monitor.id}' and talisker.id='${var.tasks[count.index].id}'"
   }
 
     critical {

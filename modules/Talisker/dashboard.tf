@@ -57,9 +57,9 @@ resource "newrelic_one_dashboard" "dashboard" {
 
     #Row 2
     widget_table  {
-      title = "Latest values"
+      title = "Latest METRIC values"
       row = 2
-      height = 6
+      height = 4
       column = 1
       width = 6
       nrql_query {
@@ -72,6 +72,7 @@ resource "newrelic_one_dashboard" "dashboard" {
       row = 2
       column = 7
       width = 6
+      height = 4
       nrql_query {
         query       = "SELECT custom.failureDetail as 'Failure detail' from SyntheticCheck  since 2 hours ago where result='FAILED' and monitorId='${newrelic_synthetics_monitor.monitor.id}'"
       }
@@ -79,10 +80,21 @@ resource "newrelic_one_dashboard" "dashboard" {
 
     # Row 3
     widget_table  {
+      title = "Latest EVENT values"
+      row = 2
+      height = 4
+      column = 1
+      width = 6
+      nrql_query {
+        query       = "from ${var.nameSpace}Sample select latest(value) where talisker.monitorId ='${newrelic_synthetics_monitor.monitor.id}' facet talisker.name "
+      }
+    }
+    widget_table  {
       title = "Integration errors"
       row = 3
       column = 7
       width = 6
+      height = 4
       nrql_query {
         query       = "SELECT * from NrIntegrationError where metricNameSample like '${var.nameSpace}.%' since 1 days ago"
       }
