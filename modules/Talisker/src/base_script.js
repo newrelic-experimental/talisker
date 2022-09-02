@@ -96,6 +96,15 @@ async function asyncForEach(array, callback) {
     }
 }
   
+/*
+* isObject()
+*
+* A handy check for if a var is an object
+*/
+function isObject(val) {
+    if (val === null) { return false;}
+    return ( (typeof val === 'function') || (typeof val === 'object') );
+}
 
 /*
 * genericServiceCall()
@@ -156,11 +165,10 @@ const sendDataToNewRelic = async (data) =>  {
     let request = {
         url: `https://${INGEST_METRIC_ENDPOINT}/metric/v1`,
         method: 'POST',
-        json: true,
         headers :{
             "Api-Key": INSERT_KEY
         },
-        body: data
+        body: JSON.stringify(data)
     }
     log(`\nSending ${data[0].metrics.length} records to NR metrics API...`)
     return genericServiceCall([200,202],request,(body,response,error)=>{
@@ -183,11 +191,10 @@ const sendEventDataToNewRelic = async (data) =>  {
     let request = {
         url: `https://${INGEST_EVENT_ENDPOINT}/v1/accounts/${ACCOUNT_ID}/events`,
         method: 'POST',
-        json: true,
         headers :{
             "Api-Key": INSERT_KEY
         },
-        body: data
+        body: JSON.stringify(data)
     }
     log(`\nSending ${data.length} records to NR events API...`)
     return genericServiceCall([200,202],request,(body,response,error)=>{
@@ -239,7 +246,12 @@ async function runtasks(tasks) {
         await genericServiceCall([200],options,(body)=>{return body})
         .then((body)=>{
             try {
-                bodyJSON = JSON.parse(body)
+                let bodyJSON
+                if(isObject(body)) {
+                    bodyJSON = body
+                } else {
+                    bodyJSON = JSON.parse(body)
+                }  
 
        
                 let resultData={}
@@ -480,4 +492,3 @@ try {
 } catch(e) {
     console.log("Unexpected errors: ",e)
 }
-  
