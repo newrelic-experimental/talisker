@@ -92,19 +92,10 @@ const log = function(data, verbose) {
 */
 async function asyncForEach(array, callback) {
     for (let index = 0; index < array.length; index++) {
-        await callback(array[index], index, array);
+      await callback(array[index], index, array);
     }
-}
+  }
   
-/*
-* isObject()
-*
-* A handy check for if a var is an object
-*/
-function isObject(val) {
-    if (val === null) { return false;}
-    return ( (typeof val === 'function') || (typeof val === 'object') );
-}
 
 /*
 * genericServiceCall()
@@ -123,9 +114,6 @@ const  genericServiceCall = function(responseCodes,options,success) {
     return new Promise((resolve, reject) => {
         $http(options, function callback(error, response, body) {
         if(error) {
-            console.log("Request error:",error)
-            console.log("Response:",response)
-            console.log("Body:",body)
             reject(`Connection error on url '${options.url}'`)
         } else {
             if(!possibleResponseCodes.includes(response.statusCode)) {
@@ -165,12 +153,13 @@ const sendDataToNewRelic = async (data) =>  {
     let request = {
         url: `https://${INGEST_METRIC_ENDPOINT}/metric/v1`,
         method: 'POST',
+        json: true,
         headers :{
             "Api-Key": INSERT_KEY
         },
-        body: JSON.stringify(data)
+        body: data
     }
-    log(`\nSending ${data[0].metrics.length} records to NR metrics API...`)
+    log(`\nSending ${data.length} records to NR metrics API...`)
     return genericServiceCall([200,202],request,(body,response,error)=>{
         if(error) {
             log(`NR Post failed : ${error} `,true)
@@ -191,10 +180,11 @@ const sendEventDataToNewRelic = async (data) =>  {
     let request = {
         url: `https://${INGEST_EVENT_ENDPOINT}/v1/accounts/${ACCOUNT_ID}/events`,
         method: 'POST',
+        json: true,
         headers :{
             "Api-Key": INSERT_KEY
         },
-        body: JSON.stringify(data)
+        body: data
     }
     log(`\nSending ${data.length} records to NR events API...`)
     return genericServiceCall([200,202],request,(body,response,error)=>{
@@ -232,7 +222,7 @@ async function runtasks(tasks) {
           }
           `
         const options =  {
-                url: `https://${GRAPHQL_ENDPOINT}/graphql`,
+                url: `https://api.newrelic.com/graphql`,
                 method: 'POST',
                 headers :{
                   "Content-Type": "application/json",
@@ -246,28 +236,70 @@ async function runtasks(tasks) {
         await genericServiceCall([200],options,(body)=>{return body})
         .then((body)=>{
             try {
-                let bodyJSON
-                if(isObject(body)) {
-                    bodyJSON = body
-                } else {
-                    bodyJSON = JSON.parse(body)
-                }  
+                bodyJSON = JSON.parse(body)
 
-       
                 let resultData={}
                 let result=null
                 let facetResult = false
+
+                let results=bodyJSON.data.actor.account.nrql.results
                 //deal with compare with queries
-                if(bodyJSON.data.actor.account.nrql.results.length==2 && bodyJSON.data.actor.account.nrql.results[0].comparison && bodyJSON.data.actor.account.nrql.results[0].comparison) {
-                    let previous=_.get(bodyJSON.data.actor.account.nrql.results.find((item)=>{return item.comparison==="previous"}),task.selector)
-                    let current=_.get(bodyJSON.data.actor.account.nrql.results.find((item)=>{return item.comparison==="current"}),task.selector)
-                    result=((current-previous)/current) * 100
+                if(results[0].hasOwnProperty('comparison') ) {
+                    if(!results[0].hasOwnProperty('facet') ) {
+                        //Basic compare, just two results, not faceted
+                        const previous=_.get(results.find((item)=>{return item.comparison==="previous"}),task.selector)
+                        const current=_.get(results.find((item)=>{return item.comparison==="current"}),task.selector)
+                        result=((current-previous)/current) * 100 //return the % difference
+                    } else {
+                        //must be a faceted result, more work to do
+                        const currentResults=results.filter((resultRow)=>{return resultRow.comparison==='current'})
+                        const previousResults=results.filter((resultRow)=>{return resultRow.comparison==='previous'})
+
+                        let resultSet=[]
+                        currentResults.forEach((resultRow)=>{
+                            let facetName="";
+                            let facetsObj={};
+                            if(Array.isArray(resultRow.facet)) {
+                                facetName = resultRow.facet.join("-");
+                                resultRow.facet.forEach((facet,idx)=>{
+                                    facetsObj[`${NAMESPACE}.facet.${idx}`]=facet; //we dont know the facet column names, only the values
+                                })
+                            } else {
+                                facetName=resultRow.facet
+                                facetsObj[`${NAMESPACE}.facet`]=resultRow.facet
+                            }
+
+                            resultSet.push({
+                                facetName: facetName,
+                                facets: facetsObj,
+                                current: _.get(resultRow,task.selector)
+                            })
+                        })
+                        
+
+                        previousResults.forEach((resultRow)=>{
+                            let findFacetName = Array.isArray(resultRow.facet) ? resultRow.facet.join("-"): resultRow.facet
+                            let currentRow = resultSet.find((facet)=>{
+                                return facet.facetName===findFacetName
+                            })
+                            if(currentRow) {
+                                currentRow.previous=_.get(resultRow,task.selector)
+                                currentRow.value=((currentRow.current-currentRow.previous)/currentRow.current) * 100 //return the % difference
+                            }
+                        })
+
+                        let filteredResultSet=resultSet.filter((e)=>{return e.hasOwnProperty('value')})
+                        if(filteredResultSet.length!==resultSet.length) {
+                            console.log(`Not all current and previous records had valid values for both, ${resultSet.length-filteredResultSet.length} of them were dropped`)
+                        }
+                        result=filteredResultSet
+                    }
                 } else if(bodyJSON.data.actor.account.nrql.metadata &&
                         bodyJSON.data.actor.account.nrql.metadata.facets && 
                         bodyJSON.data.actor.account.nrql.metadata.facets.length > 0) {
                         //faceted data
                         facetResult=true
-                        result=bodyJSON.data.actor.account.nrql.results.map((result)=>{
+                        result=results.map((result)=>{
 
                             let facetArr={}
 
@@ -299,7 +331,7 @@ async function runtasks(tasks) {
                         
                 } else {
                      //simple single result data
-                    resultData=bodyJSON.data.actor.account.nrql.results[0]
+                    resultData=results[0]
                     result=_.get(resultData, task.selector)
                 }
 
@@ -492,3 +524,4 @@ try {
 } catch(e) {
     console.log("Unexpected errors: ",e)
 }
+  
