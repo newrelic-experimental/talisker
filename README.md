@@ -86,10 +86,9 @@ The script will process each task in the TASKS array and drop a metric into New 
 - **talisker.id** - the id of the task
 - **talisker.name** - the name of the task
 - **talisker.monitorName** - the name of the monitor (as set by you)
-- **talisker.monitorId** - the ID of the monitor (as set by you)
 
 You could for example target the output of a task with the following NRQL: 
-`from Metric select latest(talisker.value) where talisker.monitorId='your-monitor-id' and talisker.id='your-task-id`
+`from Metric select latest(talisker.value) where talisker.monitorName='your-monitor-name' and talisker.id='your-task-id`
 
 ### Event Support
 Talisker also supports storing the output results as events rather than metrics. This can be chosen on a task level by setting `ingestType` to `event`. Events will appear in the event type `taliskerSample`. e.g.: `select latest(value) from taliskerSample facet talisker.name`
