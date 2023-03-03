@@ -1,7 +1,8 @@
 module "example1" {
   source = "./modules/Talisker"
   monitorName = "Talisker NRDB Alerts"
-  frequency = 15
+  period = "EVERY_15_MINUTES" # period as specified by resouce
+  frequency = 15  # minutes as a number
   userAPIKey = var.userAPIKey
   insertAPIKey = var.insertAPIKey
   accountId = var.terraformNRAccountId

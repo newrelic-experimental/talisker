@@ -26,7 +26,7 @@ resource "newrelic_nrql_alert_condition" "condition" {
   aggregation_timer = 60
 
   nrql {
-    query             = var.tasks[count.index].ingestType == "event" ? "from ${var.nameSpace}Sample select latest(value) where talisker.monitorId ='${newrelic_synthetics_monitor.monitor.id}' and talisker.id='${var.tasks[count.index].id}'" : "from Metric select latest(${var.nameSpace}.value) where talisker.monitorId ='${newrelic_synthetics_monitor.monitor.id}' and talisker.id='${var.tasks[count.index].id}'"
+    query             = var.tasks[count.index].ingestType == "event" ? "from ${var.nameSpace}Sample select latest(value) where talisker.monitorName ='${newrelic_synthetics_script_monitor.monitor.id}' and talisker.id='${var.tasks[count.index].id}'" : "from Metric select latest(${var.nameSpace}.value) where talisker.monitorName ='${newrelic_synthetics_script_monitor.monitor.name}' and talisker.id='${var.tasks[count.index].id}'"
   }
 
     critical {

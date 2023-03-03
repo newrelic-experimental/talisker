@@ -28,7 +28,7 @@ resource "newrelic_nrql_alert_condition" "watcher" {
   aggregation_timer = 60
 
   nrql {
-    query             = "select latest(custom.tasksSuccessRate) from SyntheticCheck where  monitorId = '${newrelic_synthetics_monitor.monitor.id}'"
+    query             = "select latest(custom.tasksSuccessRate) from SyntheticCheck where  monitorId = '${newrelic_synthetics_script_monitor.monitor.id}'"
   }
 
   critical {

@@ -467,7 +467,6 @@ async function runtasks(tasks) {
     if(metricsInnerPayload && metricsInnerPayload.length > 0) {
         let commonMetricBlock={"attributes": {}}
         commonMetricBlock.attributes[`${NAMESPACE}.monitorName`]=MONITOR_NAME
-        commonMetricBlock.attributes[`${NAMESPACE}.monitorId`]=MONITOR_ID
         commonMetricBlock.attributes[`talisker.version`]=TALISKER_VERSION
     
         let metricsPayLoad=[{ 
@@ -490,7 +489,6 @@ async function runtasks(tasks) {
         //add talisker runtime meta data
         eventsInnerPayload.forEach((event)=>{
             event[`${NAMESPACE}.monitorName`]=MONITOR_NAME
-            event[`${NAMESPACE}.monitorId`]=MONITOR_ID
             event[`talisker.version`]=TALISKER_VERSION
         })
     
