@@ -1,7 +1,7 @@
 [![New Relic Experimental header](https://github.com/newrelic/opensource-website/raw/main/src/images/categories/Experimental.png)](https://opensource.newrelic.com/oss-category/#new-relic-experimental)
 
 # Talisker - NRDB NRQL Alerting Engine
-The Talisker engine allows you to alert on NRQL queries longer than the 2 hour streaming alerts limit. The engine runs within the New Relic Synthetic Monitor container and can be configured with a simple JSON configuration.
+The Talisker engine allows you to alert on NRQL queries longer than the 24 hour streaming alerts limit. The engine runs within the New Relic Synthetic Monitor container and can be configured with a simple JSON configuration. This allows you to query against NRDB using any time window span you choose and also combine results from multiple queries. Query results are written back to NRDB where you can alert on them.
 
 At its simplest you can just add the [script](./modules/Talisker/src/base_script.js) to your synthetic monitor, but this project includes a full terraform module that builds not only the monitor but a dashboard and default alerts too. You might not want all of that cruft, simply remove what you dont need.
 
