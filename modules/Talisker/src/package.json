@@ -9,7 +9,7 @@
   "license": "ISC",
   "dependencies": {
     "request": "2.88.2",
-    "lodash": "4.17.11"
+    "lodash": "4.17.21"
   },
   "description": ""
 }
