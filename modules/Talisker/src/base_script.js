@@ -265,7 +265,7 @@ async function runtasks(tasks) {
                         //Basic compare, just two results, not faceted
                         const previous=_.get(results.find((item)=>{return item.comparison==="previous"}),task.selector)
                         const current=_.get(results.find((item)=>{return item.comparison==="current"}),task.selector)
-                        result=((current-previous)/current) * 100 //return the % difference
+                        result=((current-previous)/previous) * 100 //return the % difference
                     } else {
                         //must be a faceted result, more work to do
                         const currentResults=results.filter((resultRow)=>{return resultRow.comparison==='current'})
@@ -300,7 +300,7 @@ async function runtasks(tasks) {
                             })
                             if(currentRow) {
                                 currentRow.previous=_.get(resultRow,task.selector)
-                                currentRow.value=((currentRow.current-currentRow.previous)/currentRow.current) * 100 //return the % difference
+                                currentRow.value=((currentRow.current-currentRow.previous)/currentRow.previous) * 100 //return the % difference
                             }
                         })
 
