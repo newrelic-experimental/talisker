@@ -1,0 +1,23 @@
+{
+  "name": "talisker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "buildsrc": "cat ./src/preamble-src.js > talisker-src.js && cat ./src/head.js >> talisker-src.js && cat ./src/const-config.js >> talisker-src.js && cat ./src/local-testing.js >> talisker-src.js && cat ./src/base.js >> talisker-src.js",
+    "buildugly": "cat ./src/head.js > talisker.js && cat ./src/const-config.js >> talisker.js && cat ./src/preamble-uglify.js >> talisker.js && uglifyjs --compress --mangle -- ./src/base.js >> talisker.js",
+    "build-example-simple": "cat ./src/examples/head-simple.js > examples/talisker-example-simple.js && cat ./src/const-config.js >> examples/talisker-example-simple.js && cat ./src/local-testing.js >> examples/talisker-example-simple.js && cat ./src/preamble-uglify.js >> examples/talisker-example-simple.js && uglifyjs --compress --mangle -- ./src/base.js >> examples/talisker-example-simple.js",
+    "build-example-accumulator": "cat ./src/examples/head-accumulator.js > examples/talisker-example-accumulator.js && cat ./src/const-config.js >> examples/talisker-example-accumulator.js && cat ./src/local-testing.js >> examples/talisker-example-accumulator.js && cat ./src/preamble-uglify.js >> examples/talisker-example-accumulator.js && uglifyjs --compress --mangle -- ./src/base.js >> examples/talisker-example-accumulator.js",
+    "build-all": "npm run buildsrc && npm run buildugly && npm run build-example-simple && npm run build-example-accumulator"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "request": "2.88.2",
+    "lodash": "4.17.21"
+  },
+  "description": "",
+  "devDependencies": {
+    "pre-commit": "^1.2.2",
+    "uglify-js": "^3.17.4"
+  }
+}
