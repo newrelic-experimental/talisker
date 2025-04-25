@@ -161,7 +161,7 @@ if (IS_LOCAL_ENV) {
 
 // Main Talisker Code --------------------------
 
-// This is the compressed/uglified script. If you need the uncompessed version, see the src/preamble-src.js file.
+// This is the compressed/uglified script. If you need the uncompessed version, see the talisker-src.js file.
 
 
 let assert=require("assert"),_=require("lodash"),ACCUMULATOR={value:0,count:0,max:0,min:0,mean:0},log=function(e,t){(VERBOSE_LOG||t)&&console.log(e)};async function asyncForEach(t,a){for(let e=0;e<t.length;e++)await a(t[e],e,t)}function isObject(e){return null!==e&&("function"==typeof e||"object"==typeof e)}let genericServiceCall=function(e,o,n){"timeout"in o||(o.timeout=DEFAULT_TIMEOUT);let c="number"==typeof e?[e]:e;return new Promise((r,s)=>{$http(o,function(e,t,a){e?(console.log("Request error:",e),console.log("Response:",t),console.log("Body:",a),s(`Connection error on url '${o.url}'`)):c.includes(t.statusCode)?r(n(a,t,e)):(a=`Expected [${c}] response code but got '${t.statusCode}' from url '${o.url}'`,s(a))})})},setAttribute=function(e,t){RUNNING_LOCALLY||$util.insights.set(e,t)},sendDataToNewRelic=async e=>{var t={url:`https://${INGEST_METRIC_ENDPOINT}/metric/v1`,method:"POST",headers:{"Api-Key":INSERT_KEY},body:JSON.stringify(e)};return log(`
