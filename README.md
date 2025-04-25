@@ -14,7 +14,7 @@ Features include:
 - Store signal as Metric (preferred) or Event
 
 ## Installation and setup
-Copy the content of [talisker.js](.talisker.js) into a New Relic Scripted API monitor. Configure with your account details and API keys and define the tasks you wish to run.
+Copy the content of [talisker.js](talisker.js) into a New Relic Scripted API monitor. Configure with your account details and API keys and define the tasks you wish to run.
 
 > Note: The file [talisker-src.js](talisker-src.js) is also available which includes the full talisker code but uncompressed.
 
