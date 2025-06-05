@@ -44,6 +44,7 @@ const INGEST_METRIC_ENDPOINT = NEWRELIC_DC === "EU" ? "metric-api.eu.newrelic.co
 const GRAPHQL_ENDPOINT = NEWRELIC_DC === "EU" ? "api.eu.newrelic.com" : "api.newrelic.com" 
 const INGEST_EVENT_TYPE=`${NAMESPACE}Sample` //events are stored in the eventtype
 
+let RUNNING_LOCALLY = false; //for local testing, set to true if running locally
 
 // End head.
 
@@ -52,7 +53,6 @@ const INGEST_EVENT_TYPE=`${NAMESPACE}Sample` //events are stored in the eventtyp
 *  This section allows you to run the script from your local machine
 *  mimicking it running in the new relic environment. Much easier to develop!
 */
-let RUNNING_LOCALLY = false;
 const IS_LOCAL_ENV = typeof $http === 'undefined';
 if (IS_LOCAL_ENV) {  
   RUNNING_LOCALLY=true

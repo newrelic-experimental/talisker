@@ -38,6 +38,7 @@ const INGEST_METRIC_ENDPOINT = NEWRELIC_DC === "EU" ? "metric-api.eu.newrelic.co
 const GRAPHQL_ENDPOINT = NEWRELIC_DC === "EU" ? "api.eu.newrelic.com" : "api.newrelic.com" 
 const INGEST_EVENT_TYPE=`${NAMESPACE}Sample` //events are stored in the eventtype
 
+let RUNNING_LOCALLY = false; //for local testing, set to true if running locally
 
 // End head.
 
